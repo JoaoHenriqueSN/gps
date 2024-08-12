@@ -1,0 +1,43 @@
+
+#!/bin/bash
+#set -x
+
+#Defina as credenciais do banco de dados:
+
+usuario_db='usuario_do_banco'
+senha_db='senha_do_banco'
+database_db='banco'
+host_db='endereço_do_banco'
+#_____________________________________________________________________________
+
+# Define as variáveis do script:
+
+data=$(date +%Y%m%d)
+hora=$(date +%Y-%m-%d-%H:%M)
+mes=$(date +%Y%m)
+arquivo="/caminho/do/arquivo/ramais.txt"
+echo "$et_log"
+#______________________________________________________________________________
+
+# Lê o arquivo e coloca na variável et_log a et da máquiina que ele coleta na sexta coluna em conexoes.log. Deixando a informação na ordem "ramal | et"
+while IFS= read -r ramal
+
+do
+    et_log=$(tail -n +1 /caminho/do/arquivo/$mes*/conexoes.log | grep -i "$ramal" | cut -d "=" -f6 | sort | tail -1)
+
+# Defina a consulta SQL
+sql_query="SELECT et FROM consulta WHERE et ='$et_log'"
+
+# Execute a consulta SQL e coleta a et para atribuir ela em consulta
+consulta=$(mysql -u "$usuario_db" -p"$senha_db" -h "$host_db" -D "$database_db" -e "$sql_query" | tail -n +2)
+
+# Passe todos os dados coletados para um arquivo txt, comparando se são iguais
+
+if [ -z "$consulta" ] || [ -z "$et_log" ]; then
+    echo "$hora; - ramal=$ramal; Error etlog = $et_log; consulta = $consulta" >> $data"_resultado.txt"
+elif [ "$consulta" = "$et_log" ]; then
+    echo "$hora; - ramal=$ramal; Ok etlog = $et_log; consulta = $consulta" >> $data"_resultado.txt"
+else
+    echo "$hora; - ramal=$ramal; Error etlog = $et_log; consulta = $consulta" >> $data"_resultado.txt"
+fi
+done < "$arquivo"
